@@ -1,46 +1,108 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
+import Validation from "../utils/Validation";
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../utils/firebase";
+import { useNavigate } from "react-router-dom";
 
 const SignInForm = () => {
   const [signin, setsingin] = useState(true);
-  function handleSignIn() {
+  const [validationMessage, setValidationMessage] = useState(null);
+  const navigate = useNavigate();
+
+  const email = useRef(null);
+  const password = useRef(null);
+  const name = useRef(null);
+
+  const ToggleSignIn = () => {
     setsingin(!signin);
-  }
+  };
+
+  const ValidateForm = () => {
+    const validationMsg = Validation(
+      email.current.value,
+      password.current.value,
+      signin ? null : name.current.value // Only pass name if signing up
+    );
+    
+    setValidationMessage(validationMsg);
+
+    if (validationMsg) return; // Stop if validation fails
+
+    if (!signin) {
+      createUserWithEmailAndPassword(auth, email.current.value, password.current.value)
+        .then((userCredential) => {
+          const user = userCredential.user;
+        })
+        .catch((error) => {
+          const errorCode = error.code;
+          const errorMessage = error.message;
+          setValidationMessage(`${errorCode} - ${errorMessage}`);
+          console.error(errorCode, errorMessage);
+        });
+    } else {
+      signInWithEmailAndPassword(auth, email.current.value, password.current.value)
+        .then((userCredential) => {
+          const user = userCredential.user;
+        })
+        .catch((error) => {
+          const errorCode = error.code;
+          const errorMessage = error.message;
+          setValidationMessage(`${errorCode} - ${errorMessage}`);
+          console.error(errorCode, errorMessage);
+        });
+    }
+  };
+
   return (
-    <div className="w-4/12  bg-black bg-opacity-80  absolute top-1/2 left-1/2 translate-x-[-50%] translate-y-[-50%] rounded-md p-10 text-white">
+    <div className="w-4/12 bg-black bg-opacity-80 absolute top-1/2 left-1/2 translate-x-[-50%] translate-y-[-50%] rounded-md p-10 text-white">
       <h1 className="text-white text-3xl font-bold mb-2">
-        {signin ? "Sign in" : "Sign Up"}
+        {signin ? "Sign In" : "Sign Up"}
       </h1>
-      <form className="w-full flex flex-col items-center ">
-        {signin && <input
-          className="p-4 m-2  w-full rounded-md bg-black bg-opacity-50 border-gray-600 border-2"
-          type="text"
-          placeholder="Full Name"
-          required
-        />}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+        }}
+        className="w-full flex flex-col items-center"
+      >
+        {!signin && (
+          <input
+            ref={name}
+            className="p-4 m-2 w-full rounded-md bg-black bg-opacity-50 border-gray-600 border-2"
+            type="text"
+            placeholder="Full Name"
+          />
+        )}
         <input
-          className="p-4 m-2  w-full rounded-md bg-black bg-opacity-50 border-gray-600 border-2"
+          ref={email}
+          className="p-4 m-2 w-full rounded-md bg-black bg-opacity-50 border-gray-600 border-2"
           type="email"
           placeholder="Email or mobile number"
           required
         />
         <input
-          className="p-4 m-2  w-full rounded-md bg-black bg-opacity-50 border-gray-600 border-2"
+          ref={password}
+          className="p-4 m-2 w-full rounded-md bg-black bg-opacity-50 border-gray-600 border-2"
           type="password"
           placeholder="Password"
           required
         />
+        <p className="text-red-500 font-bold text-lg p-2">
+          {validationMessage}
+        </p>
         <button
-          type="Submit"
+          onClick={ValidateForm}
+          type="submit"
           className="bg-red-600 px-4 py-2 m-2 w-full rounded-md"
         >
           Submit
         </button>
       </form>
+
       {signin && (
         <div className="text-center">
           <h1 className="m-2">OR</h1>
           <button
-            type="Submit"
+            type="button"
             className="px-4 py-2 my-2 w-full bg-gray-600 rounded-md"
           >
             Use a Sign-in code
@@ -57,17 +119,15 @@ const SignInForm = () => {
 
       <div
         className="flex gap-1 my-4 text-lg cursor-pointer"
-        onClick={handleSignIn}
+        onClick={ToggleSignIn}
       >
         {signin ? (
           <h1 className="text-gray-400">
-            New to Netflix?
-            <span className="font-bold text-white">Sign up Now</span>
+            New to Netflix? <span className="font-bold text-white">Sign up Now</span>
           </h1>
         ) : (
           <h1 className="text-gray-400">
-            Already Registered?
-            <span className="font-bold text-white">Sign in Now</span>
+            Already Registered? <span className="font-bold text-white">Sign in Now</span>
           </h1>
         )}
       </div>
